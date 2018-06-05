@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Mapa de brechas OSC</title>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.6/esri/themes/light/main.css">
+
+  <script>
+    var dojoConfig = {
+      has: {
+        // Enable webgl for feature layer in MapView
+        "esri-featurelayer-webgl": 1
+      }
+    };
+  </script>
+
+  <script src="https://js.arcgis.com/4.6/"></script>
+
+  <script>
+    require([
+        "require",
+        "esri/Map",
+        "esri/layers/FeatureLayer",
+        "esri/views/MapView",
+        "esri/widgets/Legend",
+        "esri/widgets/Search",
+		"esri/widgets/Home",
+		"esri/widgets/Fullscreen",
+        "esri/widgets/Expand",
+        "esri/widgets/Zoom",
+        "esri/widgets/Print",
+        "esri/WebMap",
+        "dojo/on",
+        "dojo/domReady!"
+      ],
+      function(
+        require,
+        Map,
+        FeatureLayer,
+        MapView, Legend, Search, Home, fullscreen, 
+        Expand, Print,Zoom
+      ) {
+
+        //--------------------------------------------------------------------------
+        //
+        //  Setup Map and View
+        //
+        //--------------------------------------------------------------------------
+
+		var tituloMapa = "Tasa de mortalidad por cada 1,000 menores de 5 años , por causas distintas a desnutrición - Año 2015";
+		var uriLayer = "https://sig.dnp.gov.co/arcgis/rest/services/OSC/Mapa_calidadvida/FeatureServer/6";
+		var intervaloBrecha = 5; 
+		var rangosquintiles = [{
+            limInf: 2.541,
+            limSup: 10.98
+          }, {
+            limInf: 1.851,
+            limSup: 2.54
+          }, {
+            limInf: 1.191,
+            limSup: 1.85
+          }, {
+            limInf: 0.001,
+            limSup: 1.19
+          }, {
+            limInf: 0,
+            limSup: 0
+          }];
+
+	var maxDif = Math.max((rangosquintiles[4].limSup - rangosquintiles[0].limInf), (rangosquintiles[0].limSup - rangosquintiles[4].limInf));
+	var etiquetaQuintiles = ["<= 11", "<= 3", "<= 2", " <= 1", "0"];
+		
+        var layer = new FeatureLayer({
+          url: uriLayer,
+          definitionExpression: "(ValTop >= 0)",
+          outFields: ["Valor", "ValTop", "MPIO_CNMBR", "DPTO_CNMBR"],
+          title: tituloMapa
+        });
+
+        var view = new MapView({
+          map: new Map({
+            basemap: 
+            {
+              portalItem: {id: "3582b744bba84668b52a16b0b6942544"}
+              //portalItem:{url:"https://tiles.arcgis.com/tiles/RNw3MQnfcqGgYg0A/arcgis/rest/services/MapaBase_Colombia_Desplaza_SanAndresnProvidencia/VectorTileServer"}
+            },
+            layers: [layer]
+          }),
+          container: "viewDiv",
+          constraints: {
+            snapToZoom: false
+          },
+          extent: {
+            xmin: -80,
+            ymin: -4,
+            xmax: -66.90,
+            ymax: 13.6,
+          }
+        });
+
+
+    
+        //--------------------------------------------------------------------------
+        //
+        //  Setup UI
+        //
+        //--------------------------------------------------------------------------
+
+        view.ui.empty("top-left");
+
+		document.querySelector("#titleDiv").innerHTML = tituloMapa;
+		
+        var slider = document.getElementById("slider");
+        var sliderValue = document.getElementById("sliderValue");
+        var playButton = document.getElementById("playButton");
+        var titleDiv = document.getElementById("titleDiv");
+        var animation = null;
+
+        function inputHandler() {
+          stopAnimation();
+          setvalorBrecha(parseInt(slider.value));
+        }
+        slider.addEventListener("input", inputHandler);
+        slider.addEventListener("change", inputHandler);
+
+        playButton.addEventListener("click", function() {
+          if (playButton.classList.contains("toggled")) {
+            stopAnimation();
+          }
+          else {
+            startAnimation();
+          }
+        });
+
+
+        var print = new Print({
+        view: view,
+            // specify your own print service
+            printServiceUrl: "https://utility.arcgisonline.com/arcgis/rest/services/Utilities/PrintingTools/GPServer/Export%20Web%20Map%20Task",
+
+        });
+    // Adds widget below other elements in the top left corner of the view
+        view.ui.add(print, {
+        position: "bottom-right"
+        });
+
+        var sources = [
+        {
+          featureLayer: new FeatureLayer({
+            url: uriLayer,
+            outFields: ["*"]
+          }),
+          searchFields: ["MPIO_CNMBR"],
+          suggestionTemplate: "{MPIO_CNMBR} ({DPTO_CNMBR})",
+          popupEnabled: false,
+          exactMatch: false,
+          outFields: ["*"],
+          name: "Municipio",
+          placeholder: "Municipio",
+          maxResults: 6,
+          maxSuggestions: 6,
+          suggestionsEnabled: true,
+          minSuggestCharacters: 0
+        }
+        ];
+
+        var searchWidget = new Search({
+          view: view,
+          placeholder: "Municipio",
+          sources: sources
+        });
+        
+        // Widget de busqueda
+
+        view.ui.add(searchWidget, {
+          position: "bottom-left",
+          index: 2
+        });
+
+        view.ui.add(titleDiv, "top-left");
+
+        view.ui.add(new Expand({
+          view: view,
+          content: new Home({
+            view: view
+          })
+        }), "top-left");
+
+        view.ui.add(new Legend({
+          view: view
+        }), "top-left");
+
+
+        // Si el layer esta disponible, establecer la interactividad del visor de brechas
+
+        view.whenLayerView(layer).then(setupHoverTooltip);
+
+        //Inicia la aplicación mostrando los mejores territorios (Brecha de 0%) entre el territorio y el mejor de su categoría
+        setvalorBrecha(0);
+
+        //--------------------------------------------------------------------------
+        //
+        //  Methods
+        //
+        //--------------------------------------------------------------------------
+
+        /**
+         * Establecer brecha.
+         */
+        function setvalorBrecha(value) {
+          sliderValue.innerHTML =
+            "<span style='font-weight:bold; font-size:120%'>" + (Math.round(
+              value * 100) / 100).toFixed(1) +
+            " %</span> de diferencia respecto al mejor territorio ";
+          slider.value = value;
+          layer.renderer = createRenderer(value);
+        }
+
+        /**
+         * Crea el renderer con la variable de opacidad alrededor del territorio vs el mejor.
+         */
+        function createRenderer(valorBrecha) {
+          valorBrecha = Math.min(100, Math.max(0, valorBrecha));
+
+          function roundToTheTenth(value) {
+            return Math.round(value * 10) / 10;
+          }
+
+          
+          //Crear paradas de opacidad
+          
+          var opacityStops = [{
+            opacity: 0.02,
+            value: roundToTheTenth(valorBrecha - intervaloBrecha)
+          }, {
+            opacity: 1,
+            value: roundToTheTenth(valorBrecha)
+          }, {
+            opacity: 0.02,
+            value: roundToTheTenth(valorBrecha + intervaloBrecha)
+          }];
+
+          // Hacer 0 las brechas menores a cero
+          if (valorBrecha - intervaloBrecha < 0) {
+            opacityStops[0].opacity = Math.min(0.99, 0.02 + -opacityStops[0].value / intervaloBrecha);
+            opacityStops[0].value = 0;
+          }
+
+          // Dar valor 100 a las brechas mayores a 100.
+
+          if (valorBrecha + intervaloBrecha > 100) {
+            opacityStops[2].opacity = (opacityStops[2].value - 100) / intervaloBrecha + 0.02;
+            opacityStops[2].value = 100;
+          }
+        
+        var colorParams = {
+        layer: layer,
+        field: "Valor",
+        normalizationField: "ValTop",
+        theme: "above-and-below"
+        };
+
+        var sliderParams = {
+        numHandles: 3,
+        syncedHandles: true,
+        container: "slider"
+      };
+
+
+
+      var quintil1 = {
+        type: "simple-fill", 
+        color: "#FE3C19",
+        style: "solid",
+        outline: {
+          width: 0.5,
+          color: "darkgray"
+        }
+      };
+
+      var quintil2 = {
+        type: "simple-fill", 
+        color: "#FFAC18",
+        style: "solid",
+        outline: {
+          width: 0.5,
+          color: "darkgray"
+        }
+      };
+
+      var quintil3 = {
+        type: "simple-fill", 
+        color: "#F2FE2A",
+        style: "solid",
+        outline: {
+          width: 0.5,
+          color: "darkgray"
+        }
+      };
+      
+      var quintil4 = {
+        type: "simple-fill", 
+        color: "#7DB815",
+        style: "solid",
+        outline: {
+          width: 0.5,
+          color: "darkgray"
+        }
+      };
+
+      var quintil5 = {
+        type: "simple-fill", 
+        color: "#0084A8",
+        style: "solid",
+        outline: {
+          width: 0.5,
+          color: "darkgray"
+        }
+      };
+
+          // Regresar un renderer nuevo con las variables en funcion de la  opacidad
+
+        return {
+        type: "class-breaks",
+        field: "Valor",
+        defaultSymbol: {
+          type: "simple-fill", 
+          color: "#D3D3D3",
+          style: "solid",
+		  outline: {
+          width: 0.5,
+          color: "black"
+          }
+        },
+		defaultLabel: "Sin información",
+
+        classBreakInfos: [{
+          minValue: rangosquintiles[0].limInf,
+          maxValue: rangosquintiles[0].limSup,
+          symbol: quintil1,
+          label: etiquetaQuintiles[0]
+        }, {
+          minValue: rangosquintiles[1].limInf,
+          maxValue: rangosquintiles[1].limSup,
+          symbol: quintil2,
+          label: etiquetaQuintiles[1]
+        },
+        {
+          minValue: rangosquintiles[2].limInf,
+          maxValue: rangosquintiles[2].limSup,
+          symbol: quintil3,
+          label: etiquetaQuintiles[2]
+        }, {
+          minValue: rangosquintiles[3].limInf,
+          maxValue: rangosquintiles[3].limSup,
+          symbol: quintil4,
+          label: etiquetaQuintiles[3]
+        }, {
+          minValue: rangosquintiles[4].limInf,
+          maxValue: rangosquintiles[4].limSup,
+          symbol: quintil5,
+          label: etiquetaQuintiles[4]
+        }
+        ]  ,
+            visualVariables: [{
+              type: "opacity",
+        
+              // Expresión Arcade para calcular la brecha
+
+/*
+              valueExpression: "var fields = [$feature.Valor,$feature.ValTop];" +
+                "var sorted = Reverse(Sort(fields));" +
+                "Round(((sorted[0] - sorted[1])/sorted[1]*100), 2);",
+*/
+
+
+              valueExpression: "var fields = [$feature.Valor,$feature.ValTop];" +
+              "var sorted = Reverse(Sort(fields));" +
+              "Round(((sorted[0] - sorted[1])/10.97*100), 2);",
+              valueExpressionTitle: "% Brecha",
+              stops: opacityStops
+}]
+          };
+        }
+
+        /**
+         * Ajustes del tooltip
+         */
+        function setupHoverTooltip(layerview) {
+          var hitTestPromise;
+          var highlight;
+
+          var tooltip = createTooltip();
+
+          function hitTest(point) {
+            if (hitTestPromise) {
+              hitTestPromise.cancel();
+            }
+
+            hitTestPromise = view.hitTest(point.x, point.y)
+              .then(function(hit) {
+                hitTestPromise = null;
+
+                if (hit.results.length) {
+                  var graphic = hit.results[0].graphic;
+                  var screenPoint = hit.screenPoint;
+
+                  return {
+                    graphic: graphic,
+                    screenPoint: screenPoint,
+                    values: {
+                      curNombre: graphic.getAttribute("MPIO_CNMBR") + " (" + graphic.getAttribute("DPTO_CNMBR")  + ")",
+                      curMunicipio: graphic.getAttribute("Valor"),
+                      bestMunicipio: graphic.getAttribute("ValTop")
+                    }
+                  };
+                }
+                else {
+                  return null;
+                }
+              });
+
+            return hitTestPromise;
+          }
+
+          view.on("pointer-move", function(event) {
+            hitTest(event).then(function(result) {
+              if (highlight) {
+                highlight.remove();
+                highlight = null;
+              }
+
+              if (!result) {
+                tooltip.hide();
+                view.surface.style.cursor = "auto";
+              }
+              else {
+                highlight = layerview.highlight(result.graphic);
+                tooltip.show(result.screenPoint, result.values);
+                view.surface.style.cursor = "pointer";
+              }
+            });
+          });
+
+          view.on("click", function(event) {
+            hitTest(event).then(function(result) {
+              if (!result) {
+                return;
+              }
+
+              stopAnimation();
+
+              var valMunicipio = result.values.curMunicipio;
+              var valMejorMunicipio = result.values.bestMunicipio;
+              var p_Brecha = (Math.max(valMunicipio, valMejorMunicipio) - Math.min(valMunicipio, valMejorMunicipio)) /
+                (maxDif == 0 ? 0.01: maxDif) * 100;
+              animation = animateTo(p_Brecha);
+            });
+          });
+        }
+
+        /**
+         * Iniciar la animacion
+         */
+        function startAnimation() {
+          stopAnimation();
+          animation = animate(parseFloat(slider.value));
+          playButton.classList.add("toggled");
+        }
+
+        /**
+         * Detener la animacion
+         */
+        
+        function stopAnimation() {
+          if (!animation) {
+            return;
+          }
+
+          animation.remove();
+          animation = null;
+          playButton.classList.remove("toggled");
+        }
+
+        /**
+         * Anima la brecha visualizada continuamente
+         */
+
+        function animate(startValue) {
+          var animating = true;
+          var value = startValue;
+          var direction = 0.1;
+
+          var frame = function() {
+            if (!animating) {
+              return;
+            }
+
+            value += direction;
+            if (value > 100) {
+              value = 100;
+              direction = -direction;
+            }
+            else if (value < 0) {
+              value = 0;
+              direction = -direction;
+            }
+
+            setvalorBrecha(value);
+            requestAnimationFrame(frame);
+          }
+
+          requestAnimationFrame(frame);
+
+          return {
+            remove: function() {
+              animating = false;
+            }
+          };
+        }
+
+        /**
+         * Anima a un valor de brecha.
+         */
+        
+        function animateTo(targetValue) {
+          var animating = true;
+
+          var frame = function() {
+            if (!animating) {
+              return;
+            }
+
+            var value = parseFloat(slider.value);
+
+            if (Math.abs(targetValue - value) < 1) {
+              animating = false;
+              setvalorBrecha(targetValue);
+            }
+            else {
+              setvalorBrecha(value + (targetValue - value) * 0.25);
+              requestAnimationFrame(frame);
+            }
+          }
+
+          requestAnimationFrame(frame);
+
+          return {
+            remove: function() {
+              animating = false;
+            }
+          };
+        }
+
+        /**
+         * Fullscreen API 
+         */
+        
+        var fullScreenButton = document.getElementById("fullScreenButton");
+        var applicationDiv = document.getElementById("applicationDiv");
+        var fullscreenAPI = null;
+        var fullScreenFnNames = ["requestFullscreen",
+          "webkitRequestFullscreen", "mozRequestFullScreen",
+          "msRequestFullscreen"
+        ];
+        var fullscreenElementNames = ["fullscreenElement",
+          "webkitFullscreenElement", "mozFullScreenElement",
+          "msFullscreenElement"
+        ];
+        var exitFullscreenFnNames = ["exitFullscreen", "webkitExitFullscreen",
+          "mozCancelFullScreen", "msExitFullscreen"
+        ];
+        var fullScreenEventNames = ["fullscreenchange",
+          "webkitfullscreenchange", "mozfullscreenchange",
+          "MSFullscreenChange"
+        ];
+        var hasFullScreenSupport = fullScreenFnNames.some(function(fnName,
+          index) {
+          if (!view.container[fnName]) {
+            return false;
+          }
+
+          fullscreenAPI = {
+            eventName: fullScreenEventNames[index],
+            isFullscreen: function() {
+              return document[fullscreenElementNames[index]];
+            },
+            toggle: function() {
+              if (!document[fullscreenElementNames[index]]) {
+                applicationDiv[fnName]();
+              } else {
+                document[exitFullscreenFnNames[index]]();
+              }
+            }
+          }
+
+          return true;
+        });
+
+        if (!hasFullScreenSupport) {
+          fullScreenButton.parentElement.removeChild(fullScreenButton);
+        }
+        else {
+          fullScreenButton.addEventListener("click", fullscreenAPI.toggle)
+          document.addEventListener(fullscreenAPI.eventName, function() {
+            if (fullscreenAPI.isFullscreen()) {
+              fullScreenButton.firstChild.className =
+                "esri-icon-zoom-in-fixed";
+            }
+            else {
+              fullScreenButton.firstChild.className =
+                "esri-icon-zoom-out-fixed";
+            }
+          });
+          view.ui.add(fullScreenButton, "top-right");
+        }
+
+        /**
+         * Crea un tooltip para representar una gráfica que muestra los valores crudos
+         * y la brecha con el valor del mejor territorio
+         */
+        
+        function createTooltip() {
+          var tooltip = document.createElement("div");
+          var style = tooltip.style;
+
+          style.opacity = 0;
+          tooltip.setAttribute("role", "tooltip");
+          tooltip.classList.add("tooltip");
+
+          var content = document.getElementById("tooltipContent");
+          content.style.visibility = "visible";
+          content.classList.add("esri-widget");
+          tooltip.appendChild(content);
+
+          view.container.appendChild(tooltip);
+
+          var x = 0;
+          var y = 0;
+          var targetX = 0;
+          var targetY = 0;
+          var visible = false;
+          var moveRaFTimer;
+
+          function move() {
+            function moveStep() {
+              moveRaFTimer = null;
+              x += (targetX - x) * 0.5;
+              y += (targetY - y) * 0.5;
+
+              if (Math.abs(targetX - x) < 1 && Math.abs(targetY - y) < 1) {
+                x = targetX;
+                y = targetY;
+              }
+              else {
+                moveRaFTimer = requestAnimationFrame(moveStep);
+              }
+
+              style.transform = "translate3d(" + Math.round(x) + "px," + Math
+                .round(y) + "px, 0)";
+            }
+
+            if (!moveRaFTimer) {
+              moveRaFTimer = requestAnimationFrame(moveStep);
+            }
+          }
+
+          var valMunicipio;
+          var valMejorMunicipio;
+          var updateRaFTimer;
+
+          function updateContent(values) {
+            /*
+            if (valMunicipio === values.curMunicipio && valMejorMunicipio === values.bestMunicipio) {
+              return;
+            }
+            */
+
+            valMunicipio = values.curMunicipio;
+            valMejorMunicipio = values.bestMunicipio;
+            cancelAnimationFrame(updateRaFTimer);
+
+            updateRaFTimer = requestAnimationFrame(function() {
+              var p_Brecha = (Math.max(valMunicipio, valMejorMunicipio) - Math.min(valMunicipio, valMejorMunicipio)) / (
+                maxDif == 0 ? 0.001 : maxDif);
+              p_Brecha = Math.round(p_Brecha * 10000) / 100;
+              var p_valMunicipio = (valMunicipio / (maxDif == 0 ? 0.001 : maxDif)) * 100;
+              var p_valMejorMunicipio = (valMejorMunicipio / (maxDif == 0 ? 0.001 : maxDif)) * 100;
+
+              document.querySelector(".tituloNombreMpio").innerHTML = values.curNombre;
+              document.querySelector("#chart .row.curMunicipio .bar").style.width = p_valMunicipio + "%";
+              document.querySelector("#chart .row.curMunicipio .value > span").innerHTML = valMunicipio;
+
+              document.querySelector("#chart .row.bestMunicipio .bar").style.width = p_valMejorMunicipio + "%";
+              document.querySelector("#chart .row.bestMunicipio .value > span").innerHTML = valMejorMunicipio;
+
+              document.querySelector("#chart .row.Brecha .bar").style.width = valMunicipio === null ? 0 : p_Brecha + "%";
+              document.querySelector("#chart .row.Brecha .bar").style.marginLeft =  valMunicipio === null ? 0 :Math.min(p_valMunicipio, p_valMejorMunicipio) + "%";
+              document.querySelector("#chart .row.Brecha .value > span").innerHTML = valMunicipio === null ? null :p_Brecha + "%";
+			  
+            });
+          }
+
+          return {
+            show: function(point, values) {
+              if (!visible) {
+                x = point.x;
+                y = point.y;
+              }
+
+              targetX = point.x;
+              targetY = point.y;
+              style.opacity = 1;
+              visible = true;
+
+              move();
+              updateContent(values)
+            },
+
+            hide: function() {
+              style.opacity = 0;
+              visible = false;
+            }
+          }
+        }
+      });
+  </script>
+  
+  <style>
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      margin: 0;
+    }
+
+    #applicationDiv {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #viewDiv {
+      width: 100%;
+      height: 100%;
+	  flex: 1 1 auto;
+      order: 1;
+    }
+
+    #titleDiv {
+      font-weight: 400;
+      font-style: normal;
+      font-size: 1.2019rem;
+      padding: 10px;
+    }
+
+    #sliderContainer {
+      flex: 0 0 80px;
+      order: 2;
+
+      display: flex;
+      flex-flow: row;
+
+      padding: 0 12px;
+    }
+
+    #sliderValue {
+      flex: 0 0 150px;
+      order: 1;
+
+      display: flex;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+    }
+
+    #sliderInnerContainer {
+      flex: 1 1 auto;
+      order: 2;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 20px;
+    }
+
+    #sliderLabels {
+      flex: 1 1 auto;
+      order: 1;
+
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+
+    #rangeWrapper {
+      flex: 1 1 auto;
+      order: 2;
+
+      position: relative;
+      padding: 0 20px;
+    }
+
+    #slider {
+      width: 100%;
+    }
+	
+    /**
+     * Play/Stop toggle button
+     */
+
+    #playButton {
+      flex: 0 0 100px;
+      order: 3;
+
+      margin: 20px 0;
+    }
+
+    .toggle-button {
+      display: flex;
+    }
+
+    .toggle-button.toggled .toggle-button-icon {
+      color: #CC1B1B;
+    }
+
+    .toggle-button .toggle-button-icon {
+      color: #1BCC1B;
+    }
+
+    .toggle-button> :nth-child(2) {
+      display: none;
+    }
+
+    .toggle-button.toggled> :nth-child(1) {
+      display: none;
+    }
+
+    .toggle-button.toggled> :nth-child(2) {
+      display: block;
+    }
+
+    /**
+     * Hover tooltip
+     */
+
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      transition: opacity 200ms;
+    }
+
+    .tooltip>div {
+      margin: 0 auto;
+      padding: 1px;
+      border-radius: 4px;
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+      transform: translate3d(-50%, -120%, 0);
+      width: 310px;
+      height: 225px;
+
+      display: flex;
+    }
+
+    .tooltip-content {
+      flex: 1 1 100%;
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .tituloNombreMpio {
+      border-bottom: 1px solid lightgray;
+      font-size: 120%;
+      font-style: bold;
+      margin-top: 10px;
+      padding-top: 0px;
+	  text-align: center;
+    }
+
+    .tooltip-text {
+      border-top: 1px solid lightgray;
+      font-size: 75%;
+      font-style: italic;
+      margin-top: 12px;
+      padding-top: 4px;
+    }
+    /**
+     * Tooltip's chart
+     */
+
+    .chart {
+      flex: 1 1 100%;
+      display: flex;
+
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .chart .row {
+      flex: 1 1 auto;
+      align-items: center;
+
+      display: flex;
+    }
+
+    .chart .row .labels {
+      flex: 0 0 60px;
+
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      text-align: right;
+	  width: 10px;
+    }
+
+    .chart .row .labels>span {
+      flex: 1 1 100%;
+      text-align: right;
+	  width: 10px;
+    }
+
+    .chart .row .value {
+      flex: 0 0 60px;
+
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      text-align: right;
+    }
+
+    .chart .row .value>span {
+      flex: 1 1 100%;
+      text-align: right;
+    }
+
+    .chart .row .data {
+      flex: 1 1 100%;
+
+      position: relative;
+      padding-left: 4px;
+      padding-right: 4px;
+    }
+
+    .row.Brecha {
+      margin-top: 2px;
+      padding-top: 2px;
+      border-top: 1px solid lightgray;
+    }
+
+    .bar {
+      text-align: right;
+      height: 24px;
+
+      display: flex;
+      align-items: center;
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      
+	  transition: 300ms all;
+    }
+
+    .row.curMunicipio .bar {
+      background-color: rgb(0,0,255);
+    }
+
+    .row.bestMunicipio .bar {
+      background-color: rgb(0, 128, 0);
+    }
+
+    .row.Brecha .bar {
+      position: relative;
+      background: white url("https://js.arcgis.com/4.6/esri/symbols/patterns/backward-diagonal.png") repeat;
+      border-radius: 0;
+      border-bottom: 1px solid gray;
+      border-top: 1px solid gray;
+    }
+
+    .row.Brecha .bar>div {
+      position: absolute;
+      z-index: -1;
+      top: -110px;
+      bottom: -18px;
+      left: -1px;
+      right: -1px;
+      border-left: 1px dashed gray;
+      border-right: 1px dashed gray;
+      background: #ECECEC;
+    }
+  </style>
+  
+</head>
+
+<body>
+  <div id="applicationDiv">
+    <div id="viewDiv">
+      <div id="titleDiv" class="esri-widget">tituloMapa</div>
+      <div id="fullScreenButton" class="esri-widget esri-widget-button">
+        <span class="esri-icon-zoom-out-fixed" aria-label="fullscreen icon"></span>
+      </div>
+    </div>
+    <div id="sliderContainer" class="esri-widget">
+      <span id="sliderValue"></span>
+      <div id="sliderInnerContainer">
+        <div id="sliderLabels">
+          <span></span>
+          <span></span>
+        </div>
+        <div id="rangeWrapper">
+          <input id="slider" type="range" min="0" max="100" value="10" step="0.1" style="width: 80%;"
+          />
+        </div>
+      </div>
+      <div id="playButton" class="esri-widget esri-widget-button toggle-button">
+        <div><span class="toggle-button-icon esri-icon-play" aria-label="play icon"></span>Animar</div>
+        <div><span class="toggle-button-icon esri-icon-pause" aria-label="pause icon"></span>Pausar</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tooltipContent" class="tooltip-content" style="visibility: hidden;">
+    <div class="tituloNombreMpio">De clic para seleccionar territorios con igual brecha</div>
+    <div id="chart" class="chart">
+      <div class="row curMunicipio">
+        <div class="labels">
+          <span>Municipio:</span>
+        </div>
+        <div class="data">
+          <div class="bar">
+          </div>
+        </div>
+        <div class="value">
+          <span></span>
+        </div>
+      </div>
+      <div class="row bestMunicipio">
+        <div class="labels">
+          <span>Mejor municipio:</span>
+        </div>
+        <div class="data">
+          <div class="bar">
+          </div>
+        </div>
+        <div class="value">
+          <span></span>
+        </div>
+      </div>
+      <div class="row Brecha">
+        <div class="labels">
+          <span>Brecha:</span>
+        </div>
+        <div class="data">
+          <div class="bar">
+            <div></div>
+          </div>
+        </div>
+        <div class="value">
+          <span></span>
+        </div>
+      </div>
+    </div>
+    <div class="tooltip-text">De clic sobre el mapa para seleccionar territorios con brecha similar</div>
+  </div>
+
+</body>
+
+</html>

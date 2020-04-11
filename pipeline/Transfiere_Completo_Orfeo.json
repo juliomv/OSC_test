@@ -1,0 +1,78 @@
+{
+	"name": "Transfiere_Completo_Orfeo",
+	"properties": {
+		"activities": [
+			{
+				"name": "Cnt_PQRD",
+				"description": "Conteo de registros de la tabla de PQRs de Orfeo",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlSource",
+						"query": "SELECT  COUNT(*) n FROM public.reporte_pqrd_rad"
+					},
+					"dataset": {
+						"referenceName": "POSTblPQRDOrfeo",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "PQRD_SQL_BID_Azure",
+				"description": "Mover la tabla completa de PQRs de Orfeo a la nube de Azure.",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Cnt_PQRD",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "PostgreSqlSource",
+						"query": "SELECT * FROM public.reporte_pqrd_rad"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"tableOption": "autoCreate"
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "POSTblPQRDOrfeo",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DestinoAzure",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,13 @@
+{
+	"name": "SourceDataset_ek6",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "atq",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "InformixTable",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

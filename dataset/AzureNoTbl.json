@@ -1,0 +1,17 @@
+{
+	"name": "AzureNoTbl",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabaseDestino",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "Linaje"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

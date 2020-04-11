@@ -1,0 +1,13 @@
+{
+	"name": "TablaIFXATQ",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "atq",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "InformixTable",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

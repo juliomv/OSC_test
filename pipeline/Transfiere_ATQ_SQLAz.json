@@ -1,0 +1,263 @@
+{
+	"name": "Transfiere_ATQ_SQLAz",
+	"properties": {
+		"activities": [
+			{
+				"name": "Transfiere datos",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "GetMaxPeticionID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "GetMinPeticionID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "InformixSource",
+						"query": {
+							"value": "SELECT * FROM @{variables('origenTablaActual')} WHERE @{variables('campoControlCarga')}>@{activity('GetMinPeticionID').output.firstRow.MinIDCarga} AND @{variables('campoControlCarga')}<=  @{activity('GetMaxPeticionID').output.firstRow.MaxIDCarga}",
+							"type": "Expression"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"tableOption": "autoCreate"
+					},
+					"enableStaging": false,
+					"enableSkipIncompatibleRow": true
+				},
+				"inputs": [
+					{
+						"referenceName": "TablaIFXATQ",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DestinoAzure",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "GetMaxPeticionID",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "GetIDLinaje",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "InformixSource",
+						"query": {
+							"value": "SELECT MAX(pet_ide) as MaxIDCarga from @{variables('origenTablaActual')}",
+							"type": "Expression"
+						}
+					},
+					"dataset": {
+						"referenceName": "TablaIFXATQ",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "RegistraFinalizacion",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Transfiere datos",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[spRegistraFinCarga]",
+					"storedProcedureParameters": {
+						"lastID": {
+							"value": {
+								"value": "@activity('GetMaxPeticionID').output.firstRow.MaxIDCarga",
+								"type": "Expression"
+							},
+							"type": "Decimal"
+						},
+						"loadID": {
+							"value": {
+								"value": "@activity('GetIDLinaje').output.firstRow.CurLinaje",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabaseDestino",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "GetIDLinaje",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "InsertaLinaje",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT ISNULL(MAX(Linaje_SK), 0) AS CurLinaje FROM Linaje WHERE Nombre_Tabla = '@{variables('tablaActual')}'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00"
+					},
+					"dataset": {
+						"referenceName": "DestinoAzure",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "InsertaLinaje",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[spRegistrarLinaje]",
+					"storedProcedureParameters": {
+						"nombreTabla": {
+							"value": {
+								"value": "@variables('tablaActual')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"tipoCarga": {
+							"value": {
+								"value": "@variables('tipoCargaActual')",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabaseDestino",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "GetMinPeticionID",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "GetIDLinaje",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT Ultimo_ID_Carga AS MinIDCarga FROM Linaje WHERE Linaje_SK = @{activity('GetIDLinaje').output.firstRow.curLinaje}",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00"
+					},
+					"dataset": {
+						"referenceName": "DestinoAzure",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			}
+		],
+		"variables": {
+			"tablaActual": {
+				"type": "String",
+				"defaultValue": "ATQ_PETICION_PETICIONARIO"
+			},
+			"tipoCargaActual": {
+				"type": "String",
+				"defaultValue": "I"
+			},
+			"origenTablaActual": {
+				"type": "String",
+				"defaultValue": "informix.atq_peticion_peticionario"
+			},
+			"campoControlCarga": {
+				"type": "String",
+				"defaultValue": "PET_IDE"
+			}
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

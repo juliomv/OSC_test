@@ -1,0 +1,30 @@
+{
+	"name": "DestinationDataset_d8n",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureDBDPCLS",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "mun_codigo_Res",
+				"type": "varchar",
+				"precision": 0,
+				"scale": 0
+			},
+			{
+				"name": "N",
+				"type": "numeric",
+				"precision": 20,
+				"scale": 0
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "Cnt_Personas_Mpio"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

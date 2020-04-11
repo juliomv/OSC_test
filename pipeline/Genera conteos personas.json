@@ -1,0 +1,193 @@
+{
+	"name": "Genera conteos personas",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copiar datos de residencia peticionario",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Preparacion_datos",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Destination",
+						"value": "dbo.Cnt_Personas_Mpio"
+					}
+				],
+				"typeProperties": {
+					"source": {
+						"type": "InformixSource",
+						"query": "SELECT MUN_CODIGO_RES, COUNT(DISTINCT per_ide) AS N, \"RESIDENCIA\" AS tipo FROM informix.atq_persona GROUP BY MUN_CODIGO_RES"
+					},
+					"sink": {
+						"type": "AzureSqlSink"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "mun_codigo_res",
+									"type": "String"
+								},
+								"sink": {
+									"name": "mun_codigo_Res",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "n",
+									"type": "Decimal"
+								},
+								"sink": {
+									"name": "N",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"name": "tipo",
+									"type": "String"
+								},
+								"sink": {
+									"name": "tipo",
+									"type": "String"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "SourceDataset_d8n",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DestinationDataset_d8n",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Preparacion_datos",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[prc_bid_cnt_personas_mpio]"
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDBDPCLS",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Copiar datos de ubicacion de los hechos",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copiar datos de residencia peticionario",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Destination",
+						"value": "dbo.Cnt_Personas_Mpio"
+					}
+				],
+				"typeProperties": {
+					"source": {
+						"type": "InformixSource",
+						"query": "SELECT A.MUN_CODIGO_HECHOS, COUNT(DISTINCT B.PER_IDE) AS N, \"HECHOS\" AS Tipo\nFROM INFORMIX.ATQ_PETICION AS A INNER JOIN INFORMIX.ATQ_PETICION_PETICIONARIO AS B\nON (A.PET_IDE = B.PET_IDE) \nGROUP BY A.MUN_CODIGO_HECHOS"
+					},
+					"sink": {
+						"type": "AzureSqlSink"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "mun_codigo_hechos",
+									"type": "String"
+								},
+								"sink": {
+									"name": "mun_codigo_Res",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "n",
+									"type": "Decimal"
+								},
+								"sink": {
+									"name": "N",
+									"type": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"name": "tipo",
+									"type": "String"
+								},
+								"sink": {
+									"name": "tipo",
+									"type": "String"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "SourceDataset_d8n",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DestinationDataset_d8n",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

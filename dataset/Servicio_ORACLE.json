@@ -1,0 +1,14 @@
+{
+	"name": "Servicio_ORACLE",
+	"properties": {
+		"description": "Linked service para conectarse al origen de datos ORACLE reflejo",
+		"linkedServiceName": {
+			"referenceName": "Oracle_Origen_LS",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "OracleTable",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

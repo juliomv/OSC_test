@@ -1,0 +1,691 @@
+{
+	"name": "Transfiere_DP",
+	"properties": {
+		"activities": [
+			{
+				"name": "Transfiere datos",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Lookup1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "InformixSource",
+						"query": "SELECT  ciu_consecutivo \n      , tdc_cod_tipo \n      , CAST(ciu_num_docum AS numeric(32)) AS ciu_num_doc_tf\n      , ciu_prinombre \n      , ciu_segnombre \n      , ciu_priapellido \n      , ciu_segapellido \n      , eda_cod_edad \n      , ciu_direccion \n      , dpa_cod_depto \n      , mun_cod_muni \n      , cen_cod_centro \n      , ciu_telefono \n      , ciu_genero \n      , eci_cod_ecivi \n      , pro_cod_profe \n      , ocu_cod_ocup \n      , nju_cod_natju \n      , nde_cod_nat \n      , ciu_email \n      , ciu_celufax \n      , trt_cod_traba \n      , pai_cod_pais \n      , dia_cod_diale \n      , idi_cod_idiom \n      , len_cod_lengu \n      , ciu_barrio \n      , gar_cod_gruar \n      , ned_cod_nived \n      , ciu_gra_alfab \n      , ciu_compincom \n      , ciu_empresa \n      , ciu_dir_empre \n      , ciu_tel_empre \n      , ciu_ult_ingre \n      , ciu_otr_ingre \n      , ciu_nom_conyu \n      , ciu_num_hijos \n      , ciu_otros \n      , ciu_cuales \n      , ciu_ing_famil \n      , ciu_egr_famil \n      , ciu_estrato \n      , viv_cod_vivie \n      , ciu_calidadp \n      , ciu_valor \n      , ciu_otr_biene \n      , ciu_fec_ultac \n      , ciu_desplazado \n      , ciu_sector \n      , gvl_cod_frup \n      , gvl_cod_grupo \n      , jur_cod_jurid \n      , sol_cod_solicitant \n      , ciu_usu_ultac \n      , ciu_fec_regis \n      , ciu_expedicion \n      , ciu_fec_nac \n      , ciu_otrodoc \n      , ciu_lgtbi \n      , ciu_alias \n  FROM  informix.ciu_ciudadano "
+					},
+					"sink": {
+						"type": "AzureSqlSink"
+					},
+					"enableStaging": false,
+					"enableSkipIncompatibleRow": true,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "ciu_consecutivo",
+									"type": "Int32"
+								},
+								"sink": {
+									"name": "ciu_consecutivo",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "tdc_cod_tipo",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "tdc_cod_tipo",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_num_doc_tf",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_num_docum",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_prinombre",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_prinombre",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_segnombre",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_segnombre",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_priapellido",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_priapellido",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_segapellido",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_segapellido",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "eda_cod_edad",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "eda_cod_edad",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_direccion",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_direccion",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "dpa_cod_depto",
+									"type": "Int32"
+								},
+								"sink": {
+									"name": "dpa_cod_depto",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "mun_cod_muni",
+									"type": "Int32"
+								},
+								"sink": {
+									"name": "mun_cod_muni",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "cen_cod_centro",
+									"type": "Int32"
+								},
+								"sink": {
+									"name": "cen_cod_centro",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_telefono",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_telefono",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_genero",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_genero",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "eci_cod_ecivi",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "eci_cod_ecivi",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "pro_cod_profe",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "pro_cod_profe",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ocu_cod_ocup",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "ocu_cod_ocup",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "nju_cod_natju",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "nju_cod_natju",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "nde_cod_nat",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "nde_cod_nat",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_email",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_email",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_celufax",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_celufax",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "trt_cod_traba",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "trt_cod_traba",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "pai_cod_pais",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "pai_cod_pais",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "dia_cod_diale",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "dia_cod_diale",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "idi_cod_idiom",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "idi_cod_idiom",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "len_cod_lengu",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "len_cod_lengu",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_barrio",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_barrio",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "gar_cod_gruar",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "gar_cod_gruar",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ned_cod_nived",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "ned_cod_nived",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_gra_alfab",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_gra_alfab",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_compincom",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_compincom",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_empresa",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_empresa",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_dir_empre",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_dir_empre",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_tel_empre",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_tel_empre",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_ult_ingre",
+									"type": "Int32"
+								},
+								"sink": {
+									"name": "ciu_ult_ingre",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_otr_ingre",
+									"type": "Int32"
+								},
+								"sink": {
+									"name": "ciu_otr_ingre",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_nom_conyu",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_nom_conyu",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_num_hijos",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "ciu_num_hijos",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_otros",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_otros",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_cuales",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_cuales",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_ing_famil",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "ciu_ing_famil",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_egr_famil",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "ciu_egr_famil",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_estrato",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "ciu_estrato",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "viv_cod_vivie",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "viv_cod_vivie",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_calidadp",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "ciu_calidadp",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_valor",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "ciu_valor",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_otr_biene",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_otr_biene",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_fec_ultac",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "ciu_fec_ultac",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_desplazado",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_desplazado",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_sector",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_sector",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "gvl_cod_frup",
+									"type": "Int32"
+								},
+								"sink": {
+									"name": "gvl_cod_frup",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "gvl_cod_grupo",
+									"type": "Int32"
+								},
+								"sink": {
+									"name": "gvl_cod_grupo",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "jur_cod_jurid",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "jur_cod_jurid",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "sol_cod_solicitant",
+									"type": "Int16"
+								},
+								"sink": {
+									"name": "sol_cod_solicitant",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_usu_ultac",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "ciu_usu_ultac",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_fec_regis",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "ciu_fec_regis",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_expedicion",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_expedicion",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_fec_nac",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "ciu_fec_nac",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_otrodoc",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_otrodoc",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_lgtbi",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_lgtbi",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ciu_alias",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ciu_alias",
+									"type": "String"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "SourceDataset_d8n",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DestinoAzure",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Lookup1",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "InformixSource",
+						"query": "SELECT  ciu_consecutivo \n      , tdc_cod_tipo \n      , CAST(ciu_num_docum AS numeric(32)) AS ciu_num_doc_tf\n      , ciu_prinombre \n      , ciu_segnombre \n      , ciu_priapellido \n      , ciu_segapellido \n      , eda_cod_edad \n      , ciu_direccion \n      , dpa_cod_depto \n      , mun_cod_muni \n      , cen_cod_centro \n      , ciu_telefono \n      , ciu_genero \n      , eci_cod_ecivi \n      , pro_cod_profe \n      , ocu_cod_ocup \n      , nju_cod_natju \n      , nde_cod_nat \n      , ciu_email \n      , ciu_celufax \n      , trt_cod_traba \n      , pai_cod_pais \n      , dia_cod_diale \n      , idi_cod_idiom \n      , len_cod_lengu \n      , ciu_barrio \n      , gar_cod_gruar \n      , ned_cod_nived \n      , ciu_gra_alfab \n      , ciu_compincom \n      , ciu_empresa \n      , ciu_dir_empre \n      , ciu_tel_empre \n      , ciu_ult_ingre \n      , ciu_otr_ingre \n      , ciu_nom_conyu \n      , ciu_num_hijos \n      , ciu_otros \n      , ciu_cuales \n      , ciu_ing_famil \n      , ciu_egr_famil \n      , ciu_estrato \n      , viv_cod_vivie \n      , ciu_calidadp \n      , ciu_valor \n      , ciu_otr_biene \n      , ciu_fec_ultac \n      , ciu_desplazado \n      , ciu_sector \n      , gvl_cod_frup \n      , gvl_cod_grupo \n      , jur_cod_jurid \n      , sol_cod_solicitant \n      , ciu_usu_ultac \n      , ciu_fec_regis \n      , ciu_expedicion \n      , ciu_fec_nac \n      , ciu_otrodoc \n      , ciu_lgtbi \n      , ciu_alias \n  FROM  informix.ciu_ciudadano "
+					},
+					"dataset": {
+						"referenceName": "SourceDataset_d8n",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			}
+		],
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

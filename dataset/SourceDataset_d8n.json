@@ -1,0 +1,13 @@
+{
+	"name": "SourceDataset_d8n",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "vision web",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "InformixTable",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

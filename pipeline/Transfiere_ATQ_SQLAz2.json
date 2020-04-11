@@ -242,7 +242,7 @@
 		"variables": {
 			"tablaActual": {
 				"type": "String",
-				"defaultValue": "ATQ_PETICION_PETICIONARIO"
+				"defaultValue": "ATQ_PERSONA"
 			},
 			"tipoCargaActual": {
 				"type": "String",
@@ -250,11 +250,11 @@
 			},
 			"origenTablaActual": {
 				"type": "String",
-				"defaultValue": "informix.atq_peticion_peticionario"
+				"defaultValue": "informix.atq_persona"
 			},
 			"campoControlCarga": {
 				"type": "String",
-				"defaultValue": "PET_IDE"
+				"defaultValue": "PER_IDE"
 			}
 		},
 		"annotations": []

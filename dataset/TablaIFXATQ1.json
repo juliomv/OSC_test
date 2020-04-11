@@ -1,0 +1,12 @@
+{
+	"name": "TablaIFXATQ1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "atq",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "InformixTable",
+		"schema": []
+	}
+}

@@ -1,0 +1,16 @@
+{
+	"name": "DestinoAzure1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabaseDestino",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "atq_peticion_peticionario"
+		}
+	}
+}
